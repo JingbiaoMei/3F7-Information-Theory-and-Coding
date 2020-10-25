@@ -567,7 +567,103 @@ $$F \rightarrow 01, E \rightarrow 11, D \rightarrow 10, C \rightarrow 001, B \ri
 \item But this comes with the expense of increased complexity. For blocks of k symbols, the binary tree is much larger.
 \item These defects are addressed by Arithmetic coding, a scalable algorithm whose expected code length is very close to the source entropy for large sequences. It can also easily deal with non-iid source like text.
 \end{itemize}
+
 \end{itemize}
 
+\subsection{Interval Coding}
+\begin{itemize}
+\item Key idea: Each symbol can be represented as an interval inside $[0,1]$ with length of the interval equal to the symbol probability. 
 
+A source with m symbols with probabilities $\{ p_1,...,p_m\}$ is represented using m intervals 
+
+\[
+[0,p_1), [p_1, p_1+p_2),...,[\sum_{i=1}^{m-1}p_i, \sum_{i=1}^{m-1}p_i + p_m).
+\]
+\item Example: To represent interval $[0.17,0.43)$ convert the end-points to binary and find a binary interval lies completely inside this interval. say $[010,011]$ is the interval of $[0.25,0.375]$ We choose \textbf{010} as the codeword for $[0.17,0.43)$.
+
+\item In general, the binary codeword for a symbol with probability p represented by the interval $[a,a+p)$ can be obtained as follows:
+\begin{enumerate}
+\item Find the largest \textit{dyadic interval} of the form $[\frac{j}{2^{\mathit{l}}}, \frac{j+1}{2^{\mathit{l}}})$ that lies within $[a,a+p)$
+\item Take the binary representation of the lower end-point of the dyadic interval as the codeword.
+\end{enumerate}
+\item Code length: With $\mathit{l}$ code bits, the dyadic intervals have length $2^\mathit{l}$. The dyadic interval has to be contained within an interval of length p. Hence 
+\[
+2^\mathit{l} \le p \rightarrow \lceil \log_2(1/p) \rceil \le \mathit{l}
+\]
+But sometimes we'll need $\mathit{l} =\lceil \log_2(1/p) \rceil +1 $ \\
+The expected code length can therefore be bounded as 
+\[
+L = \sum_i p_i\mathit{l}_i \le \sum_i p_i (\lceil \log_2(1/p_i) \rceil +1) < H(X) + 2
+\]
+\item Performance: In terms of expected code length, the analysis above shows that interval codes are in general not as good as Huffman codes or even Shannon-Fano codes. But interval coding is the basis for arithmetic coding, which is a powerful technique for long source sequences.
+
+\end{itemize}
+\subsection{Arithmetic Coding}
+\begin{itemize}
+
+\item Explain with an example. Consider a source producing symbols $X_1,X_2,...,X_n$ which are i.i.d., with each $X_i$ taking values in $\{a,b,c\}$ with probabilities $\{0.2,0.45,0.35\}$
+\item Key ideas:
+\begin{itemize}
+\item Each length n string $(x_1,...,x_n)$ is represented by a disjoint interval with length equal to the probability of the string. 
+\begin{itemize}
+\item E.g. for $n=2$, $X_1=b,X_2=c$ corresponds to the probability of length $0.45 * 0.35=0.1575$ and $X_1=b,X_2=a$ of length $0.45 * 0.2=0.09$.
+\end{itemize}
+\item The interval for $(X_1=x,X_2=y)$ is a sub interval of the interval for $X_1=x$ 
+\begin{itemize}
+\item E.g. $X_1 = b$ is the interval $[0.2,0.65)$ and $(X_1 = b, X_2=c)$ is the subinterval of length $0.1575$ within  $[0.2,0.65)$ To calculate, we rewrite the interval as $\{0,0.2,0.65,0.1\}$ as the order of a,b,c.
+\item The subinterval becomes $0.2 + (0.65-0.2) * 0.65 \rightarrow 0.2 + (0.65-0.2) * 1$ That is $[0.4925,0.65)$ Also we can verify that $0.65 - 0.4925 = 0.1575$
+\end{itemize}  
+\item Similarly, for any symbols $x,y,z$, $P(X_1=x,X_2=y,X_3=z)$ is a sub interval of $P(X_1=x,X_2=y),$ and so on.
+\end{itemize}
+\item Decoding: Using binary codeword to sequentially zoom in to the interval, decoding symbols as you go along.
+\item Expected code length:\\
+Arithmetic coding can be performed in any sequence of length n, so that any sequence $x_1,...,x_n$ can be represented by an interval of length $p(x_1,...,x_n)$, which gives a binary codeword of length at most $\lceil \log_2\frac{1}{p(x_1,...,x_n)} \rceil + 1$. \\
+Therefore the expected code length for length n sequences is bounded as:
+\[
+L_n = \sum_{X_n} p_{x_n}\mathit{l}_{x_n} \le \sum_{x_n} p_{x_n} (\log_2\left(1/p(x_1,...,x_n)\right)+2) = H(X^n) + 2
+\]
+Therefore the expected code length per symbol is 
+\[
+\frac{L_n}{n} < \frac{H(X^n)}{n} + \frac{2}{n} = H(X) + \frac{2}{n},
+\]
+Where the last equality hold for $iid ~ P_X$
+\end{itemize}
+\subsection{Arithmetic coding for non-iid sources}
+\begin{itemize}
+\item Consider a source that produces symbols in alphabet $\{ a_1,...,a_m\}$ with a known distribution 
+\[
+P(x_1)p(x_2|x_1)...P(x_n|x_1,...,x_{n-1})
+\]
+The arithmetic coding algorithm can be easily extended to such sources. As before, consider the source with alphabet $\{a,b,c\}$ with probabilities $\{0.2,0.45,0.35\}$. \\
+Suppose that three conditional distributions $P(X_2|X_1=a)$, $P(X_2|X_1=b)$, $P(X_2|X_1=c)$ and say
+\[
+P(X_2=a|X_1=b)=0.5 , P(X_2=b|X_1=b)=0.3, P(X_2=c|X_1=b)=0.2
+\]
+We do the same thing as before, just change the probability using the conditional probability accordingly.
+\item Coding Algorithm:
+\begin{itemize}
+\item Let source alphabet $\mathcal{A}$ be $\{ a_1,...,a_m\}$
+\item We are given a source sequence $x_1,x_2,...,x_n$ where each $x_i \in \mathcal{A}$
+\item Both encoder and decoder know the conditional distributions $P_{X_1}, P_{X_2|X_1},...,P_{X_n|X_1,...,X_{n-1}}.$
+\item The encoding algorithm computes the interval using the following lower and upper cumulative probabilities.
+For $i=1,...m$ and for $k-1,...,n$ we define 
+\[
+L_k(a_i|x_1,...,x_{k-1}) = \sum_{i^{\prime}}^{i-1}  P(X_k=a_{i^{\prime}} | X_1=x_1,...,X_{k-1}=x_{k-1})
+U_k(a_i|x_1,...,x_{k-1}) = \sum_{i^{\prime}}^{i}  P(X_k=a_{i^{\prime}} | X_1=x_1,...,X_{k-1}=x_{k-1})
+\]
+\end{itemize}
+\item Finite precision issues:
+The arithmetic encoding algorithm above assumes an infinite precision computer:
+\begin{itemize}
+\item As n grows, the length of the interval corresponding to a sequence $(x_1,...,x_n)$ shrinks
+\item Hence the number of digits needed to accurately store the values lo and hi grows with n.
+\end{itemize}
+\end{itemize}
+Summary:
+\begin{enumerate}
+\item Arithmetic coding can achieve compression very close to the source entropy, with complexity scaling linearly with the length of the sequence.
+\item It does require you to know the conditional distribution. But this approach fits well with machine learning techniques that can mine huge quantities of text/speech/video data to build good probabilistic models.
+\item Note that the assumed distribution of the source doesn't need to be true one, it only needs to be the same at both encoder and decoder.
+\item Arithmetic coding works even when you generate the source conditional distribution on the fly, based on what has been observed so far. Given the generating rule, the decoder will also generate required conditional distributions as it reconstructs the sequence.
+\end{enumerate}
 \end{document}
