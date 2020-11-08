@@ -7,7 +7,11 @@
 \usepackage{amsmath}
 \DeclareRobustCommand{\rchi}{{\mathpalette\irchi\relax}}
 \newcommand{\irchi}[2]{\raisebox{\depth}{$#1\chi$}} % inner command, used by \rchi
-
+\usepackage{pgfplots}
+\usepackage{tikz}
+\pgfplotsset{width=10cm,compat=1.9}
+\usepgfplotslibrary{external}
+\tikzexternalize
 \definecolor{green}{rgb}{0.1,0.5,0.1}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -648,7 +652,10 @@ We do the same thing as before, just change the probability using the conditiona
 \item The encoding algorithm computes the interval using the following lower and upper cumulative probabilities.
 For $i=1,...m$ and for $k-1,...,n$ we define 
 \[
-L_k(a_i|x_1,...,x_{k-1}) = \sum_{i^{\prime}}^{i-1}  P(X_k=a_{i^{\prime}} | X_1=x_1,...,X_{k-1}=x_{k-1})
+L_k(a_i|x_1,...,x_{k-1}) = \sum_{i^{\prime}}^{i-1}  P(X_k=a_{i^{\prime}} | X_1=x_1,...,X_{k-1}=x_{k-1}) 
+\]
+
+\[
 U_k(a_i|x_1,...,x_{k-1}) = \sum_{i^{\prime}}^{i}  P(X_k=a_{i^{\prime}} | X_1=x_1,...,X_{k-1}=x_{k-1})
 \]
 \end{itemize}
@@ -666,4 +673,62 @@ Summary:
 \item Note that the assumed distribution of the source doesn't need to be true one, it only needs to be the same at both encoder and decoder.
 \item Arithmetic coding works even when you generate the source conditional distribution on the fly, based on what has been observed so far. Given the generating rule, the decoder will also generate required conditional distributions as it reconstructs the sequence.
 \end{enumerate}
+
+\section{Relative Entropy Mutual Information}
+\subsection{Relative Entropy}
+\subsubsection{Define}
+The \textbf{\textit{Relative Entropy}} or the \textit{Kullback-Leibler(KL)} divergence between two pmfs P and Q is:
+
+\[
+D(P||Q) = \sum_{x \in \rchi}P(x)\log\frac{P(x)}{Q(x)}
+\]
+
+\begin{itemize}
+\item P and Q are defined on the same alphabet $\rchi$
+\item Measure of distance between distributions  P and Q
+\item Not a true distance. For example:  $D(P||Q) \not = D(Q||P)$
+\item if $P=Q$ Then $D(P||Q) = 0$
+\item Example: If $P= Bern(p) $ and $Q= Bern(q)$ for $p,q \in [0,,1],$
+\[
+D(P||Q) = p\log\frac{p}{q} + (1-p)\log\frac{1-p}{1-q}
+\] 
+\item Relative Entropy is always non-negative:
+\[
+D(P||Q) \ge 0 \textrm{With equality if and only if } P=Q
+\]
+\textit{Proof:} Using $\log_2a = \frac{\ln a}{\ln 2}$
+\begin{align*}
+-D(P||Q) & = \frac{1}{\ln 2} \sum_{x \in \rchi} P(x) \ln\frac{Q(x)}{P(x)} \\
+& \le  \frac{1}{\ln 2} \sum_{x \in \rchi} P(x)\left( frac{Q(x)}{P(x)}\right) 
+& = \frac{1}{\ln 2} (1-1) = 0
+\end{align*}
+Again, we use our favorite inequality $\ln x \le (x-1)$ with equality $iff$  x=1
+\item We look at applications in \textcolor{blue1}{compression} and \textcolor{blue1}{hypothesis testing}.
+\end{itemize}
+\subsubsection{Redundancy in Source Coding}
+Often the \textcolor{blue1}{True distribution} of the source is unknown, and we have to work with estimated source distribution for compression.
+\begin{itemize}
+\item Suppose \textcolor{blue}{true pmf} of a rv is $P = \{ p_1,...,p_m\}$, \textcolor{orange}{estimated pmf} is $\hat{P} = \{ \hat{p}_1,...,\hat{p}_m\}$
+\item $\hat{P}$ is used to design a compression code whose code length $\mathit{l}_i$ satisfy
+\[
+\textcolor{red}{ \mathit{l}_i = \log(1/\hat{p}_i) }\qquad \textrm{for } i=1,...,m.
+\]
+The code is optimal for the distribution $\hat{p}$
+\item How far are we from the optimal of the \textcolor{blue1}{true distribution}?
+The Average code Length:
+\begin{align*}
+L = \sum_ip_i\mathit{l}_i & = \sum_{i}p_i \log \frac{1}{\hat{p}_i} \\
+& = \sum_{i}p_i \log\frac{p_i}{p_i\hat{p}_i} \\
+& = \sum_{i}p_i \log\frac{1}{p_i} + \sum_{i}p_i \log\frac{p_i}{\hat{p}_i} \\
+& = H(P) + D(P||\hat{p}_i) \quad \textrm{bits/symbol}
+
+\end{align*}
+\item Therefore  $D(P||\hat{p}_i)$ is the \textcolor{red}{Price} you pay in bits/symbol --Redundancy-- for designing the code with estimated distribution rather than true distribution.
+
+\item Example:  
+
+\end{itemize}
+
+
+
 \end{document}
